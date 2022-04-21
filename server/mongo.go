@@ -23,6 +23,7 @@ var client *mongo.Client = func() *mongo.Client {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("Connected successfully to MongoDB")
 	return client
 }()
 
@@ -47,7 +48,6 @@ func getCollection(client *mongo.Client) *mongo.Collection {
 		log.Fatal(err)
 	}
 	_collection := client.Database("blog-db").Collection("blogs")
-	log.Printf("Connected successfully to MongoDB")
 	return _collection
 }
 

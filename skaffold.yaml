@@ -1,0 +1,18 @@
+apiVersion: skaffold/v2beta27
+kind: Config
+build:
+  artifacts:
+    - image: server-ko
+      hooks:
+        before:
+          - command: [ "zsh", "-c", "make" ]
+      ko:
+        dir: ./server
+        dependencies:
+          paths:
+            - "**/*.go"
+
+deploy:
+  kubectl:
+    manifests:
+      - k8s/server.yaml

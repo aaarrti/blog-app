@@ -1,5 +1,6 @@
-## Compile protobuf with 
+### Compile proto buffer
     make
-
-## Introspect server APIs with
+### Deploy on local k8s cluster
+    skaffold dev --port-forward
+### Introspect server APIs with
     evans --host localhost --port <SERVER_PORT> --reflection repl         
