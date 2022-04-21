@@ -72,3 +72,12 @@ func (s *Server) UpdateBlog(c context.Context, message *pb.BlogMessage) (*emptyp
 	}
 	return &emptypb.Empty{}, nil
 }
+
+func (s *Server) ReadBlog(c context.Context, in *pb.BlogIdMessage) (*pb.BlogMessage, error) {
+	res, err := findById(c, in.Id)
+	if err != nil {
+		return nil, err
+	}
+	message := toMessage(res)
+	return message, nil
+}

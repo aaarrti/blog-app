@@ -14,6 +14,7 @@ type Server struct {
 }
 
 func main() {
+	//testConnection()
 	port, ok := os.LookupEnv("SERVER_PORT")
 	if !ok {
 		log.Fatalf("SERVER_PORT env var not set")
