@@ -22,8 +22,8 @@ message BlogIdMessage {
 
 service BlogService {
   rpc CreateBlog (CreateBlogMessage) returns (BlogIdMessage);
-  rpc readBlog (BlogIdMessage) returns (BlogMessage);
-  rpc updateBlog (BlogMessage) returns (google.protobuf.Empty);
-  rpc deleteBlog (BlogIdMessage) returns (google.protobuf.Empty);
+  rpc ReadBlog (BlogIdMessage) returns (BlogMessage);
+  rpc UpdateBlog (BlogMessage) returns (google.protobuf.Empty);
+  rpc DeleteBlog (BlogIdMessage) returns (google.protobuf.Empty);
   rpc ListAllBlogs (google.protobuf.Empty) returns (stream BlogMessage);
 }
