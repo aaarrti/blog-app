@@ -2,6 +2,8 @@ package main
 
 import (
 	pb "blog-app/proto"
+	"context"
+	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"
@@ -14,7 +16,12 @@ type Server struct {
 }
 
 func main() {
-	//testConnection()
+	testConnection()
+	defer func(client *mongo.Client) {
+		if err := client.Disconnect(context.TODO()); err != nil {
+			panic(err)
+		}
+	}(client)
 	port, ok := os.LookupEnv("SERVER_PORT")
 	if !ok {
 		log.Fatalf("SERVER_PORT env var not set")

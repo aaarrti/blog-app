@@ -6,15 +6,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"log"
 	"os"
-	"time"
 )
 
-var client *mongo.Client = func() *mongo.Client {
+var client = func() *mongo.Client {
 	mongoUri, ok := os.LookupEnv("MONGO_URI")
 	if !ok {
 		log.Fatalf("MONGO_URI env var not set")
@@ -23,37 +21,28 @@ var client *mongo.Client = func() *mongo.Client {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Connected successfully to MongoDB")
 	return client
 }()
 
 func testConnection() {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	err := client.Ping(ctx, readpref.Primary())
+	err := client.Connect(context.TODO())
 	if err != nil {
-		log.Fatal("Failed to ping MongoDB")
+		log.Fatalf("Failed to connect to mongo db: %v\n", err)
 	}
-}
-
-func disconnect(client *mongo.Client) {
-	if err := client.Disconnect(context.Background()); err != nil {
-		panic(err)
+	err = client.Ping(context.TODO(), nil)
+	if err != nil {
+		log.Fatalf("Error while pinging mongo db: %v\n", err)
 	}
+	log.Printf("Connected successfully to MongoDB")
 }
 
 func getCollection(client *mongo.Client) *mongo.Collection {
-	err := client.Connect(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
 	_collection := client.Database("blog-db").Collection("blogs")
 	return _collection
 }
 
 func save(ctx context.Context, item *CreateBlogItem) (*string, error) {
 	collection := getCollection(client)
-	defer disconnect(client)
 
 	res, err := collection.InsertOne(ctx, item)
 	if err != nil {
@@ -69,7 +58,6 @@ func save(ctx context.Context, item *CreateBlogItem) (*string, error) {
 
 func update(ctx context.Context, item *BlogItem) error {
 	collection := getCollection(client)
-	defer disconnect(client)
 
 	res, err := collection.UpdateOne(ctx,
 		bson.M{"_id": item.ID},
@@ -88,11 +76,10 @@ func update(ctx context.Context, item *BlogItem) error {
 
 func findById(c context.Context, id string) (*BlogItem, error) {
 	collection := getCollection(client)
-	defer disconnect(client)
 
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "Could nit parse Id")
+		return nil, status.Errorf(codes.InvalidArgument, "Could not parse Id")
 	}
 	blogEntity := BlogItem{}
 	err = collection.FindOne(c, bson.M{"_id": oid}).Decode(&blogEntity)
@@ -104,5 +91,39 @@ func findById(c context.Context, id string) (*BlogItem, error) {
 		return nil, status.Errorf(codes.Internal, "Internal server Error")
 	}
 	return &blogEntity, nil
+}
 
+func deleteById(c context.Context, id string) error {
+	collection := getCollection(client)
+
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "Could not parse Id")
+	}
+	res, err := collection.DeleteOne(c, bson.M{"_id": oid})
+	if err != nil {
+		log.Printf("Error while deleting %v\n", err)
+		return status.Errorf(codes.Internal, "Error while deleting")
+	}
+	if res.DeletedCount == 0 {
+		return status.Errorf(codes.NotFound, "Not found document with id %v\n", id)
+	}
+	return nil
+}
+
+func findAll() ([]BlogItem, error) {
+	collection := getCollection(client)
+	cursor, err := collection.Find(context.TODO(), bson.D{})
+	if err != nil {
+		log.Printf("Error while getting all blogs")
+		return nil, status.Errorf(codes.Internal, "Internal server error")
+	}
+	var res []BlogItem
+	for cursor.Next(context.TODO()) {
+		var document BlogItem
+		err = cursor.Decode(&document)
+		log.Print(document)
+		res = append(res, document)
+	}
+	return res, nil
 }

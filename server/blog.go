@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"log"
 )
 
 type CreateBlogItem struct {
@@ -80,4 +81,27 @@ func (s *Server) ReadBlog(c context.Context, in *pb.BlogIdMessage) (*pb.BlogMess
 	}
 	message := toMessage(res)
 	return message, nil
+}
+
+func (s *Server) DeleteBlog(c context.Context, in *pb.BlogIdMessage) (*emptypb.Empty, error) {
+	err := deleteById(c, in.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) ListAllBlogs(e *emptypb.Empty, server pb.BlogService_ListAllBlogsServer) error {
+	res, err := findAll()
+	if err != nil {
+		return err
+	}
+	for _, i := range res {
+		message := toMessage(&i)
+		err = server.Send(message)
+		if err != nil {
+			log.Printf("Error while sending to srtream %v\n", err)
+		}
+	}
+	return nil
 }
