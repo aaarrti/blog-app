@@ -5,10 +5,12 @@ metadata:
     app: blog-server-svc
   name: blog-server-svc
 spec:
+  type: NodePort
   ports:
     - port: 50005
       protocol: TCP
       targetPort: 50005
+      nodePort: 30005
   selector:
     app: blog-app
 ---
